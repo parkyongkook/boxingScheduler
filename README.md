@@ -1,4 +1,4 @@
-# [Boxing Scheduler]
+# [Boxing Scheduler](https://vimeo.com/262770124)
 
 # Introduction
 
@@ -21,6 +21,7 @@ git clone https://github.com/parkyongkook/boxingScheduler.git
 cd boxingScheduler
 npm install
 xde 설치 후 신규 프로젝트 추가
+
 ```
 
 ## Features
