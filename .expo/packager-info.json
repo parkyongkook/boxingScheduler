@@ -1,8 +1,8 @@
 {
-  "expoServerPort": null,
-  "packagerPort": null,
-  "packagerPid": null,
-  "expoServerNgrokUrl": null,
-  "packagerNgrokUrl": null,
-  "ngrokPid": null
+  "expoServerPort": 19000,
+  "packagerPort": 19001,
+  "packagerPid": 741,
+  "expoServerNgrokUrl": "https://jx-b8a.parkyongkook.2018.exp.direct",
+  "packagerNgrokUrl": "https://packager.jx-b8a.parkyongkook.2018.exp.direct",
+  "ngrokPid": 764
 }

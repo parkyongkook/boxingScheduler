@@ -1,12 +1,13 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image, TextInput } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Image, TextInput,ScrollView } from 'react-native';
 import { Actions } from 'react-native-router-flux'; // 4.0.0-beta.28
 import {connect} from 'react-redux';
 import * as actions from '../actions';
 import "redux"; // 4.0.0-beta.2
 import * as firebase from 'firebase'
 import { database } from '../firebase/Config'
-
+import PasswordInputText from 'react-native-hide-show-password-input';
+var uid;
 class Signin extends React.Component {
   	constructor(props) {
       super(props);
@@ -24,22 +25,19 @@ class Signin extends React.Component {
   }
 
 componentWillMount(){
-  if(this.props.directLogin){
-    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE)
-  }else{
+  var that = this;
     firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
     .then(function() {
       //현재로그인한 사용자 가져오기
       firebase.auth().onAuthStateChanged(function(user) {
         //사용자 정보가 있는경우.
-        if (user) {
-          email = user.email;
+        if ( user !== null ) {
           uid = user.uid;
           //로그인 된 사용자로 캘린더 페이지 접속
           const fireDataBase = firebase.database().ref('users/' + uid);
           fireDataBase.on("value",snap => {
             setTimeout(() => {
-              that.props.storeChanger(snap.val())
+              that.props.storeChanger(snap.val(),uid)
               if( that.props.daily_record[that.state.toDate] !== undefined ){
                 Actions.CalendarBasic({
                   totalRound: that.props.daily_record[that.state.toDate].totalRound,
@@ -61,17 +59,10 @@ componentWillMount(){
               }
             }, 0);
           })
-        //사용자 정보가 없는경우 로그인 페이지로 이동.
-        } else {
-          Actions.Signin()
-        }
+        } 
       });
     })
-    
-  }
-  const that = this;
-  //세션이 유지된 경우 실행
-
+ 
   //날자 데이터 구하기
   function getTimeStamp() {
     var d = new Date();
@@ -86,7 +77,7 @@ componentWillMount(){
     n = n.toString();
   
     if (n.length < digits) {
-      for (i = 0; i < digits - n.length; i++)
+      for (var i = 0; i < digits - n.length; i++)
         zero += '0';
     }
     return zero + n;
@@ -124,17 +115,33 @@ pageChangeCalendar(uid){
 
   signIn(){
     const that = this;
-    firebase.auth().signInWithEmailAndPassword(this.state.userEmail, this.state.userPassword)
+    if( this.state.userEmail === null || this.state.userPassword === null ){
+      alert("입력창이 비어있습니다.")
+    }else{
+      firebase.auth().signInWithEmailAndPassword(this.state.userEmail, this.state.userPassword)
       .then(()=>{
         firebase.auth().onAuthStateChanged(function(user) {
           if (user) {
             var email = user.email;
             var uid = user.uid;
-            if(firebase.database().ref('users/' + uid)){
+            if( firebase.database().ref('users/' + uid) ){
               that.pageChangeCalendar(uid)
             }else{
               firebase.database().ref('users/' + uid).set({
-                email : email
+                email : email,
+                daily_record : {
+                  "2018-01-01" : {
+                    exercise_list : {
+                      "0" : {
+                        exercise_id : 1,
+                        kcal : 28,
+                        rounds:7
+                      }
+                    },
+                    totalKcal:430,
+                    totalRound:14
+                  } 
+                }
               })
             }
           }
@@ -150,6 +157,7 @@ pageChangeCalendar(uid){
           alert("등록되지 않은 이메일 입니다.")
         }
       })
+    }
   }
 
   onChangeUserEmail(text){
@@ -177,22 +185,25 @@ pageChangeCalendar(uid){
                 selectionColor={"#fff"}
                 multiline={true}
                 style={styles.Signin}
-                placeholder={"User id"}
+                placeholder={"Email"}
                 placeholderTextColor={"white"}
                 secureTextEntry={true}
                 onChangeText={this.onChangeUserEmail}
+                returnKeyType={"default"}
+                onSubmitEditing = {this.signin}
             > 
             </TextInput>
         </View>
         <View> 
-            <TextInput
-                multiline={true}
-                style={styles.SigninLast}
-                placeholder={"Password"}
-                placeholderTextColor={"white"}
-                secureTextEntry={true}
-                onChangeText={this.onChangeUserPasswords}
-            /> 
+          <TextInput
+              style={styles.SigninLast}
+              placeholder={"Password"}
+              secureTextEntry={true}
+              placeholderTextColor={"white"}
+              onChangeText={this.onChangeUserPasswords}
+              returnKeyType={"default"}
+              onSubmitEditing = {this.signIn}
+          /> 
         </View>
         <View> 
           <TouchableOpacity onPress={
@@ -201,13 +212,13 @@ pageChangeCalendar(uid){
             }
           }>
             <View>
-              <Text style={{marginBottom:30,color:"#fff", }}>Sign Up</Text>
+              <Text style={{marginBottom:30,color:"#fff", }}>회원가입</Text>
             </View>
           </TouchableOpacity>
         </View>
           <TouchableOpacity onPress={this.signIn}>
           <View style={styles.button}  >
-            <Text style={styles.buttonText}>SIGN IN</Text>
+            <Text style={styles.buttonText}>시작하기</Text>
           </View>
           </TouchableOpacity>
         </View>
@@ -273,7 +284,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems:'center',
     justifyContent: 'center',
-    marginTop: 130,
+    marginTop: 70,
   },
   lowBox: {
     flex: 1,
@@ -293,7 +304,7 @@ const mapStateToProps = (state) => {
 
 const mapDispatchToProps = (dispatch) =>{
 	return {
-    storeChanger : (fireData) => {dispatch(actions.storeChanger(fireData))},
+    storeChanger : (fireData,uid) => {dispatch(actions.storeChanger(fireData,uid))},
 	  updateTofitnessData : (totalData) => {dispatch(actions.updateTofitnessData(totalData))},
 		deleteDaySelected : (dateString) => {dispatch(actions.deleteDaySelected(dateString))},
 		daySelectCreator : (dateString, isHaveDate) => {dispatch(actions.daySelectCreator(dateString, isHaveDate))},

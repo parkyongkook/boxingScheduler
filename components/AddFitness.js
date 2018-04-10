@@ -385,13 +385,15 @@ const mapStateToProps = (state) => {
 };
 
 const mapDispatchToProps = (dispatch) =>{
-  const fireDataBase_daily_record = firebase.database().ref().child("/daily_record");
+  var user = firebase.auth().currentUser;
+  var uid = user.uid
+  const fireDataBase_daily_record = firebase.database().ref("users/"+uid+"/daily_record/");
 	return {
 	  updateTofitnessData : (totalData) => {dispatch(actions.updateTofitnessData(totalData))},
 		deleteDaySelected : (dateString) => {dispatch(actions.deleteDaySelected(dateString))},
     daySelectCreator : (dateString, isHaveDate) => {dispatch(actions.daySelectCreator(dateString, isHaveDate))},
     confirmMemoData : (selectedDay,memoData) => {
-      firebase.database().ref().child("/daily_record").child(selectedDay).update({
+      fireDataBase_daily_record.child(selectedDay).update({
         memoData : memoData
       })
       dispatch(actions.confirmMemoData(selectedDay,memoData))

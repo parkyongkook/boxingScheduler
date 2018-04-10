@@ -40,10 +40,11 @@ export function removeDailyData(selectedDay){
 	}
 }
 
-export function storeChanger(fireData){
+export function storeChanger(fireData,uid){
 	return {
 		type : AppType.STORE_CHANGER,
-		fireData : fireData
+		fireData : fireData,
+		uid : uid
 	}
 }
 

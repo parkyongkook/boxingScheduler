@@ -16,13 +16,16 @@ class Signup extends React.Component {
         markedDates:{},
         userEmail: null,
         userPassword: null,
+        comfirmPassword : null
       }
       this.signUp = this.signUp.bind(this)
       this.onChangeUserEmail = this.onChangeUserEmail.bind(this)
       this.onChangeUserPasswords = this.onChangeUserPasswords.bind(this)
+      this.onChangeconfirmPassword = this.onChangeconfirmPassword.bind(this)
   }
 
 componentWillMount(){
+  const that = this;
   function getTimeStamp() {
     var d = new Date();
     var s =
@@ -36,7 +39,7 @@ componentWillMount(){
     n = n.toString();
   
     if (n.length < digits) {
-      for (i = 0; i < digits - n.length; i++)
+      for (var i = 0; i < digits - n.length; i++)
         zero += '0';
     }
     return zero + n;
@@ -44,24 +47,120 @@ componentWillMount(){
   this.setState({
     toDate : getTimeStamp()
   })
+
+  firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+    .then(function() {
+      firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+          Actions.reset("Signin",{ 
+            directLogin: true
+          });
+        }
+      });
+    })
 }
 
 signUp(){
-    firebase.auth().createUserWithEmailAndPassword(this.state.userEmail, this.state.userPassword)
-    .then( ()=>{
-      alert("회원가입이 성공하였습니다.")
-      firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE)
-    })
-    .catch((error)=>{
-      console.log(error.message)
-      if( error.message === "The email address is badly formatted."){
-        alert("틀린 이메일 형식입니다.")
-      }else if( error.message === "The email address is already in use by another account."){
-        alert("이미 등록 된 이메일 입니다.")
-      }else if(error.message === "Password should be at least 6 characters"){
-        alert("비밀번호는 6자 이상입니다.")
-      }
-    })
+    if( this.state.userPassword !== this.state.comfirmPassword ){
+      alert("비밀번호가 일치하지 않습니다.")
+    }else if(this.state.userEmail === null || this.state.userPassword === null){
+      alert("입력창이 비어있습니다.")
+    }else{
+      firebase.auth().createUserWithEmailAndPassword(this.state.userEmail, this.state.userPassword)
+      .then( ()=>{
+        alert("회원가입이 성공하였습니다.")
+        firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+          firebase.auth().onAuthStateChanged(function(user) {
+            if(user!==null){
+              var email = user.email;
+              var uid = user.uid;
+              firebase.database().ref('users/' + uid).set({
+                "email": email,
+                "daily_record" : {
+                  "2018-01-01" : {
+                    "exercise_list" : {
+                      "0" : {
+                        "exercise_id" : 1,
+                        "kcal" : 28,
+                        "rounds": 7
+                      }
+                    },
+                    "totalKcal": 430,
+                    "totalRound": 14
+                  } 
+                },
+                "exercise_categories" : [ {
+                  "checked" : "false",
+                  "id" : 1,
+                  "kcal_per_round" : 28,
+                  "title" : "스트레칭 "
+                }, {
+                  "checked" : "false",
+                  "id" : 2,
+                  "kcal_per_round" : 28,
+                  "title" : "줄넘기 "
+                }, {
+                  "checked" : "false",
+                  "id" : 3,
+                  "kcal_per_round" : 38,
+                  "title" : "샌드백 "
+                }, {
+                  "checked" : "false",
+                  "id" : 4,
+                  "kcal_per_round" : 38,
+                  "title" : "쉐도우복싱 "
+                }, {
+                  "checked" : "false",
+                  "id" : 5,
+                  "kcal_per_round" : 38,
+                  "title" : "미트 트레이닝 "
+                }, {
+                  "checked" : "false",
+                  "id" : 6,
+                  "kcal_per_round" : 38,
+                  "title" : "웨이트 트레이닝"
+                }, {
+                  "checked" : "false",
+                  "id" : 7,
+                  "kcal_per_round" : 38,
+                  "title" : "크로스핏 트레이닝"
+                }, {
+                  "checked" : "false",
+                  "id" : 8,
+                  "kcal_per_round" : 38,
+                  "title" : "스파링 "
+                }, {
+                  "checked" : "false",
+                  "id" : 9,
+                  "kcal_per_round" : 38,
+                  "title" : "메소드복싱 "
+                } ],
+                "markedDates":{
+                  "2018-01-01":{
+                    "activeOpacity":0,
+                    "dotColor":"yellow",
+                    "marked":"true",
+                    "selected":"false"
+                  }
+                }
+              });
+            }
+          });
+          Actions.reset("Signin",{ 
+            directLogin: true
+          });
+      })
+      .catch((error)=>{
+        console.log(error.message)
+        if( error.message === "The email address is badly formatted."){
+          alert("틀린 이메일 형식입니다.")
+        }else if( error.message === "The email address is already in use by another account."){
+          alert("이미 등록 된 이메일 입니다.")
+        }else if(error.message === "Password should be at least 6 characters"){
+          alert("비밀번호는 6자 이상입니다.")
+        }
+      })
+    }
 }
 
 onChangeUserEmail(text){
@@ -73,6 +172,12 @@ onChangeUserEmail(text){
 onChangeUserPasswords(text){
   this.setState({
     userPassword : text
+  })
+}
+
+onChangeconfirmPassword(text){
+  this.setState({
+    comfirmPassword : text
   })
 }
 
@@ -89,30 +194,33 @@ render() {
                 selectionColor={"#fff"}
                 multiline={true}
                 style={styles.Signin}
-                placeholder={"User id"}
+                placeholder={"Email"}
                 placeholderTextColor={"white"}
                 onChangeText={this.onChangeUserEmail}
+                onSubmitEditing = {this.signUp}
             > 
             </TextInput>
         </View>
         <View> 
             <TextInput
-                multiline={true}
                 style={styles.SigninLast}
                 placeholder={"Password"}
                 placeholderTextColor={"white"}
                 secureTextEntry={true}
                 onChangeText={this.onChangeUserPasswords}
+                onSubmitEditing = {this.signUp}
             > 
             </TextInput>
         </View>
         <View> 
+          
             <TextInput
-                multiline={true}
                 style={styles.SigninLast}
-                placeholder={"confirm Password"}
+                placeholder={"Confirm Password"}
                 secureTextEntry={true}
                 placeholderTextColor={"white"}
+                onChangeText={this.onChangeconfirmPassword}
+                onSubmitEditing = {this.signUp}
             > 
             </TextInput>
         </View>
@@ -125,13 +233,13 @@ render() {
             }
           }>
             <View>
-              <Text style={{marginBottom:30,color:"#fff", }}>SignIn</Text>
+              <Text style={{marginBottom:30,color:"#fff", }}>로그인</Text>
             </View>
           </TouchableOpacity>
         </View>
           <TouchableOpacity onPress={this.signUp}>
             <View style={styles.button}  >
-              <Text style={styles.buttonText}>SIGN UP</Text>
+              <Text style={styles.buttonText}>회원가입</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -197,7 +305,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems:'center',
     justifyContent: 'center',
-    marginTop: 130,
+    marginTop: 70,
   },
   lowBox: {
     flex: 1,

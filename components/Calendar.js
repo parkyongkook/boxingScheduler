@@ -9,7 +9,10 @@ import * as actions from '../actions';
 import "redux"; // 4.0.0-beta.2
 import { database } from '../firebase/Config'
 import * as firebase from 'firebase'
+var user;
 var uid;
+var deleteDay;
+
 LocaleConfig.locales['en'] = {
   monthNames: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
   monthNamesShort: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
@@ -35,6 +38,7 @@ class CalendarBasic extends React.Component {
       daily_record: this.props.daily_record,
       mergeDayData: null,
       exercise_categories : this.props.exercise_categories,
+      uid : null
     };
 
     this.onPressConfirm = this.onPressConfirm.bind(this);
@@ -50,28 +54,33 @@ class CalendarBasic extends React.Component {
   };
 
   componentWillMount(){
-    firebase.auth().onAuthStateChanged(function(user) {
-      if(user){
-        uid = user.uid;
-      }
-    });
+    user = firebase.auth().currentUser;
+    uid = user.uid
   }
 
   subjectSettingOnpress(){
     this.setState({
       isSubject: true
     })
+    if( deleteDay !== undefined  ){
+      if(this.state.markedData[deleteDay].selectedColor === "orange"){
+        delete this.state.markedData[deleteDay];
+        deleteDay = undefined;
+      }
+    }
   };
 
   onDayPressBasic = day => {
     const dateString = day.dateString
     if(this.state.isSubject){
+      console.log(1)
       if(this.state.markedData[dateString]){
+        console.log(2)
         this.state.markedData[dateString].selected ?  
         this.setState({
           markedData : update( this.state.markedData, { 
             [dateString] : {
-              selected:{$set:false}
+              selected:{$set:false},
             }
           })
         }) 
@@ -79,25 +88,68 @@ class CalendarBasic extends React.Component {
         this.setState({
           markedData : update( this.state.markedData, { 
             [dateString] : {
-              selected:{$set:true}
+              selected:{$set:true},
+              selectedColor:{$set:"skyblue"}
             }
           })
         }) 
       }else{
+        console.log(3)
         this.setState({
           markedData : { 
             ...this.state.markedData,
               [dateString] : { 
               ...this.state.markedData[dateString],  
-                selected : true
+                selected : true,
+                selectedColor: 'skyblue'
               }
           }
         }) 
       }
-    }else{ 
-        this.setState({
-          selectedDay: dateString,
-        })
+    }else{
+        if( deleteDay !== undefined  ){
+          if(this.state.markedData[deleteDay].selectedColor === "orange"){
+            delete this.state.markedData[deleteDay];
+          }
+        }
+        if( this.state.markedData[dateString] ){
+          if(this.state.markedData[dateString].selected !== true ){
+            this.setState({
+              selectedDay : dateString,
+              markedData : { 
+                ...this.state.markedData,
+                  [dateString] : { 
+                  ...this.state.markedData[dateString],  
+                    selected : true,
+                    selectedColor: 'orange'
+                  }
+              }
+            });
+          }else{
+            this.setState({
+              selectedDay : dateString,
+              markedData : { 
+                ...this.state.markedData,
+                  [dateString] : { 
+                  ...this.state.markedData[dateString],  
+                  selected : true,
+                  }
+              }
+            });
+          }
+        }else{
+          this.setState({
+            selectedDay : dateString,
+            markedData : { 
+              ...this.state.markedData,
+                [dateString] : { 
+                ...this.state.markedData[dateString],  
+                  selected : true,
+                  selectedColor: 'orange'
+                }
+            }
+          });
+        }
         if( this.state.daily_record[dateString] !== undefined ){
           if(this.state.daily_record[dateString].exercise_list.length){
             this.setState({
@@ -116,6 +168,7 @@ class CalendarBasic extends React.Component {
             totalKcal: null,
           })
        }
+       deleteDay = dateString;
     }
   };
 
@@ -150,8 +203,7 @@ class CalendarBasic extends React.Component {
          }); 
         for(var i = 0 ; i < toDay.length ; i ++ ){
           mergeDayData.push(Object.assign(toDayCopyObj[i], title[i]))
-        }
-        
+        }  
         this.setState({
          selectedDay: selectedDay,
          mergeDayData : mergeDayData,
@@ -379,6 +431,7 @@ class CalendarBasic extends React.Component {
   logOut(){
     firebase.auth().signOut().then(function() {
       alert("로그아웃 되었습니다.")
+      Actions.Signin() 
     }).catch(function(error) {
       alert("로그아웃 실패하였습니다.")
     });
@@ -390,8 +443,8 @@ class CalendarBasic extends React.Component {
           <TouchableOpacity onPress={this.subjectSettingOnpress}>
               <Text style={{flex:1, marginTop:38, marginLeft:20, color:'white',}}>목표설정</Text>
           </TouchableOpacity>
-          <View style={{flex:1, alignItems:'center', marginRight:70, }}>
-            <Text style={{color:"white" , fontSize:16, marginTop:35,}}>{this.state.selectedDay}</Text>     
+          <View style={{flex:1, alignItems:'center',}}>
+            <Text style={{color:"white", fontSize:20, fontWeight:"800", marginTop:35,}}>{this.state.selectedDay}</Text>     
           </View>
           <TouchableOpacity onPress={this.logOut}>
               <Text style={{flex:1, marginTop:38, marginRight:20, color:'white',}}>로그아웃</Text>
@@ -429,7 +482,7 @@ class CalendarBasic extends React.Component {
         </View>
           );        
     const defaultClandar = (        
-        <View style={styles.naviBar2}>
+        <View style={styles.naviBar3}>
            <TouchableOpacity style={{alignItems: 'flex-start', marginLeft:-15,}}  onPress={this.onPressCancel} >
               <EvilIcons color="white" size={45} name="close-o" style={{marginTop:25}} />
            </TouchableOpacity>
@@ -501,7 +554,6 @@ class CalendarBasic extends React.Component {
             </View>
           }
           <View style={{alignItems : 'flex-end',  }} >
-
             { this.props.daily_record[this.state.selectedDay] ?            
               removeButton : addButton       
             }
@@ -527,14 +579,15 @@ const styles = StyleSheet.create({
   },
   naviBar2 : {
     flex : 2.5,
+    justifyContent: "space-around" ,
     backgroundColor: 'red',
     flexDirection: "row",
-    paddingTop: 0,
+    paddingTop: 0
   },
-  naviBar2 : {
+  naviBar3 : {
     flex : 2.5,
     justifyContent: "space-around" ,
-    backgroundColor: '#46bd9d',
+    backgroundColor: 'skyblue',
     flexDirection: "row",
     paddingTop: 0
   },
@@ -560,11 +613,14 @@ const mapStateToProps = (state) => {
 };
 
 const mapDispatchToProps = (dispatch) =>{
-  const fireDataBase_daily_record = firebase.database().ref().child("/daily_record");
-  const fireDataBase_markedDates = firebase.database().ref().child("/markedDates");
+
+  var user = firebase.auth().currentUser;
+  var uid = user.uid
+
+  const fireDataBase_daily_record = firebase.database().ref("users/"+uid+"/daily_record/")
+  const fireDataBase_markedDates = firebase.database().ref("users/"+uid+"/markedDates/")
 
 	return {
-
     storeChanger : (fireData) => {dispatch(actions.storeChanger(fireData))},
     removeDailyData : (selectedDay) => {
       fireDataBase_daily_record.child(selectedDay).remove();
@@ -584,7 +640,6 @@ const mapDispatchToProps = (dispatch) =>{
       })
       dispatch(actions.updateTofitnessData(totalData,dateString))
     },
-    
 		daySelectCreator : (markedData,uid) => {
       dispatch(actions.daySelectCreator(markedData,uid))
     },

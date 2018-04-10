@@ -46,8 +46,7 @@ const initialState = {
   markedDates:{
   },
 }
-const storeChanger = (state, fireData)=>{
-  console.log("여기까지넘어온돠"+fireData)
+const storeChanger = (state, fireData, uid)=>{
   return {
     ...state,
     ...fireData
@@ -67,10 +66,6 @@ const daySelectCreator = (state, markedData, uid) => {
     }
   };
 
-}
-
-const createfitnessData = (state, totalData, dateString) => {
-   
 }
 
 const updateExerCiseList = (state , dateString, exerciseListData) => {
@@ -136,15 +131,15 @@ export default function reducer(state = initialState , action ){
 		case AppType.SELECT_DAY:
 			return daySelectCreator(state, action.markedData,action.uid)
     case AppType.CREATE_FITNESS_DATA:
-      return createfitnessData(state, action.totalData, action.dateString)  
-    case AppType.UPDATE_TO_FITNESS_DATA:
+    //   return createfitnessData(state, action.totalData, action.dateString)  
+    // case AppType.UPDATE_TO_FITNESS_DATA:
       return updateTofitData(state, action.totalData, action.dateString)  
     case AppType.UPDATE_EXERCISE_LIST:
       return updateExerCiseList(state, action.dateString, action.exerciseListData) 
     case AppType.REMOVE_DAILY_DATA:
       return removeDailyData(state, action.selectedDay)   
     case AppType.STORE_CHANGER:
-      return storeChanger(state, action.fireData)   
+      return storeChanger(state, action.fireData, action.uid)   
     case AppType.CONFIRM_MEMODATA:
       return confirmMemoData(state, action.selectedDay, action.memoData)   
 		default :	
